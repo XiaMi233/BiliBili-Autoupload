@@ -1,0 +1,15 @@
+node_modules
+.sass-cache
+www
+stats.json
+.idea
+dist
+error
+bower_components
+test
+webpack-assets.json
+global-backend/src/base/build/*
+global-backend/src/vendor/build/*
+*.log
+build
+build/*
