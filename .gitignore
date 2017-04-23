@@ -1,6 +1,7 @@
 node_modules
 .sass-cache
 www
+*.png
 stats.json
 .idea
 dist
