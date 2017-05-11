@@ -13,10 +13,11 @@
 </head>
 <body>
 <div id="app">
-  <form id="jsLogin" action="javascript:void(0)">
+  <div id="jsLoginCheck" class="well">检查登录状态中。。。</div>
+  <form id="jsLogin" class="hidden" action="javascript:void(0)">
     <div class="form-group">
       <label for="exampleInputEmail1">你的手机号/邮箱</label>
-      <input type="email" class="form-control" id="exampleInputEmail1" name="userid" placeholder="你的手机号/邮箱">
+      <input type="text" class="form-control" id="exampleInputEmail1" name="userid" placeholder="你的手机号/邮箱">
     </div>
     <div class="form-group">
       <label for="exampleInputPassword1">密码</label>
@@ -24,7 +25,8 @@
     </div>
     <div class="form-group">
       <label for="vCode">验证码</label>
-      <input type="password" class="form-control" id="vCode" name="vdcode" placeholder="验证码">
+      <input type="text" class="form-control" id="vCode" name="vdcode" placeholder="验证码">
+      <img id="vCodeImg" src="../test.png">
     </div>
     <button type="submit" class="btn btn-default">登录</button>
   </form>

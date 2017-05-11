@@ -8,7 +8,6 @@ var fs = require('fs');
 var CookieJar = "cookiejar.json";
 
 page.onUrlChanged = function(targetUrl) {
-  console.log('out_data:NO_LOGIN');
   page.close();
   login();
 };
@@ -55,15 +54,29 @@ function login() {
       console.log('进入登录页面');
       var injectStatus = page.injectJs(page.libraryPath + '/../lib/jquery-1.11.3.min.js');
 
+      // var imgObj = page.evaluate(function () {
+      //   setTimeout(function () {
+      //     $("#vdCodeTxt").val(123).focus().click();
+      //   }, 1000);
+
+
+      // yield sleep(2000);
+
+      setTimeout(function () {
+        page.evaluate(function () {
+          $("#vdCodeTxt").val(123).focus().click();
+        });
+      }, 1000);
+
+      setTimeout(function () {
       var imgObj = page.evaluate(function () {
-        $("#vdCodeTxt").val(123).focus().click();
+        // $("#vdCodeTxt").val(123).focus().click();
 
         var $captchaImg = $('#captchaImg');
         var offset = $captchaImg.offset();
         var height = $captchaImg.height();
         var width = $captchaImg.width();
 
-        // console.log(1);
         return {
           top: offset.top,
           left: offset.left,
@@ -72,13 +85,14 @@ function login() {
         };
       });
       console.log('获取验证码位置高度：' + JSON.stringify(imgObj));
-      // page.clipRect = { top: 0, left: 0, width: 1024, height: 768 };
-      setTimeout(function () {
+
+      // setTimeout(function () {
         console.log('获取验证码');
         page.render('all.png');
         page.clipRect = imgObj;
         page.render('test.png');
         // console.log(injectStatus);
+        console.log('out_data:NO_LOGIN');
         phantom.exit()
       }, 2000);
     }
