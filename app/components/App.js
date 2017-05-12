@@ -14,25 +14,31 @@ var path = require('path');
 var phantomjs = require('phantomjs');
 var spawn = require('child_process').spawn;
 
-var childArgs = [
-  path.join(__dirname, '/../shellCmd/checkLogin.js'),
-];
-var child = spawn(phantomjs.path, childArgs);
+//检查登录状态
 
-child.stdout.on('data', function (data) {
-  console.log('stdout: ' + data);
-  if (data.indexOf('out_data:') > -1) {
-    dispose(data.toString().replace('out_data:', '').trim());
-  }
-});
+function checkLogin() {
+  var childArgs = [
+    path.join(__dirname, '/../shellCmd/checkLogin.js'),
+  ];
+  var child = spawn(phantomjs.path, childArgs);
 
-child.stderr.on('data', function (data) {
-  console.log('stderr: ' + data);
-});
+  child.stdout.on('data', function (data) {
+    console.log('stdout: ' + data);
+    if (data.indexOf('out_data:') > -1) {
+      dispose(data.toString().replace('out_data:', '').trim());
+    }
+  });
 
-child.on('close', function (code) {
-  console.log('child process exited with code ' + code);
-});
+  child.stderr.on('data', function (data) {
+    console.log('stderr: ' + data);
+  });
+
+  child.on('close', function (code) {
+    console.log('child process exited with code ' + code);
+  });
+}
+
+checkLogin();
 
 var $loginForm = $('#jsLogin');
 
@@ -48,6 +54,30 @@ function login() {
   var userId = $userId.val().trim();
   var pwd = $pwd.val();
   var vdcode = $vdcode.val();
+
+  var childArgs = [
+    path.join(__dirname, '/../shellCmd/doLogin.js'),
+    userId,
+    pwd,
+    vdcode
+  ];
+
+  var child = spawn(phantomjs.path, childArgs);
+
+  child.stdout.on('data', function (data) {
+    console.log('stdout: ' + data);
+    if (data.indexOf('out_data:') > -1) {
+      dispose(data.toString().replace('out_data:', '').trim());
+    }
+  });
+
+  child.stderr.on('data', function (data) {
+    console.log('stderr: ' + data);
+  });
+
+  child.on('close', function (code) {
+    console.log('child process exited with code ' + code);
+  });
 }
 
 
@@ -57,9 +87,11 @@ function dispose(signal) {
     case 'NO_LOGIN':
       $('#jsLogin').removeClass('hidden');
       $('#jsLoginCheck').addClass('hidden');
+      $('#vCodeImg').attr('src', '../test.png?_t=' + Math.random());
       break;
     default:
       console.log('无效命令：'+ signal);
       break;
   }
 }
+

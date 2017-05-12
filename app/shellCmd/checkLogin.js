@@ -64,29 +64,29 @@ function login() {
 
       setTimeout(function () {
         page.evaluate(function () {
-          $("#vdCodeTxt").val(123).focus().click();
+          $("#vdCodeTxt").focus().click();
         });
       }, 1000);
 
       setTimeout(function () {
-      var imgObj = page.evaluate(function () {
-        // $("#vdCodeTxt").val(123).focus().click();
+        var imgObj = page.evaluate(function () {
+          // $("#vdCodeTxt").val(123).focus().click();
 
-        var $captchaImg = $('#captchaImg');
-        var offset = $captchaImg.offset();
-        var height = $captchaImg.height();
-        var width = $captchaImg.width();
+          var $captchaImg = $('#captchaImg');
+          var offset = $captchaImg.offset();
+          var height = $captchaImg.height();
+          var width = $captchaImg.width();
 
-        return {
-          top: offset.top,
-          left: offset.left,
-          height: height,
-          width: width
-        };
-      });
-      console.log('获取验证码位置高度：' + JSON.stringify(imgObj));
+          return {
+            top: offset.top,
+            left: offset.left,
+            height: height,
+            width: width
+          };
+        });
+        console.log('获取验证码位置高度：' + JSON.stringify(imgObj));
 
-      // setTimeout(function () {
+        // setTimeout(function () {
         console.log('获取验证码');
         page.render('all.png');
         page.clipRect = imgObj;
