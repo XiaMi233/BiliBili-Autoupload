@@ -1,15 +1,14 @@
 /**
  * Created by XiaMi on 2017/5/11.
  */
-
+var global = require('./global_variables');
 var webpage = require('webpage');
 var page = webpage.create();//创建webpage对象
 
+var fs = require('fs');
+
 var system = require('system');
 var args = system.args;
-// var userId = args[1];
-// var pwd = args[2];
-// var vdcode = args[3];
 
 var loginInfo = {
   userId: args[1],
@@ -17,30 +16,29 @@ var loginInfo = {
   vdcode: args[3]
 };
 
-var fs = require('fs');
-var CookieJar = 'cookiejar.json';
-
-
 page.onUrlChanged = function(targetUrl) {
   // page.close();
   // phantom.exit();
 };
 
-if(fs.isFile(CookieJar)) {
-  Array.prototype.forEach.call(JSON.parse(fs.read(CookieJar)), function(x) {
+if(fs.isFile(global.LOGIN_COOKIE_JAR)) {
+  Array.prototype.forEach.call(JSON.parse(fs.read(global.LOGIN_COOKIE_JAR)), function(x) {
     phantom.addCookie(x);
   });
 }
 
 page.open('https://passport.bilibili.com/login', function(status) {
   if (status !== 'success') {
-    console.log('Fail to load the page!');
+    console.error('进入登录页面失败!');
     phantom.exit();
   } else {
-    console.log('进入登录页面');
-    var injectStatus = page.injectJs(page.libraryPath + '/../lib/jquery-1.11.3.min.js');
+    console.log('进入登录页面!');
+    var injectStatus = page.injectJs(page.libraryPath + global.DIR_JQUERY);
 
-    if (injectStatus) {
+    if (!injectStatus) {
+      console.error('载入jquery失败');
+      phantom.exit()
+    } else {
       setTimeout(function() {
 
         var cookies = page.cookies;
@@ -65,14 +63,11 @@ page.open('https://passport.bilibili.com/login', function(status) {
       }, 1000);
 
       setTimeout(function() {
+        fs.write(global.LOGINED_COOKIE_JAR, JSON.stringify(phantom.cookies), "w");
         page.render('doLogin.png');
         phantom.exit();
-      }, 2000);
-    } else {
-      console.log('载入jquery失败');
-      phantom.exit()
+      }, 5000);
     }
-
   }
 });
 

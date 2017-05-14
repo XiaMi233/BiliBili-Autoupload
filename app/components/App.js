@@ -18,14 +18,18 @@ var spawn = require('child_process').spawn;
 
 function checkLogin() {
   var childArgs = [
-    path.join(__dirname, '/../shellCmd/checkLogin.js'),
+    path.join(__dirname, '/../shellCmd/check_login.js'),
   ];
   var child = spawn(phantomjs.path, childArgs);
 
   child.stdout.on('data', function (data) {
     console.log('stdout: ' + data);
     if (data.indexOf('out_data:') > -1) {
-      dispose(data.toString().replace('out_data:', '').trim());
+      data.toString().split('\n').forEach(function(info) {
+        if (info.indexOf('out_data:') > -1) {
+          dispose(info.replace('out_data:', '').trim());
+        }
+      });
     }
   });
 
@@ -56,7 +60,7 @@ function login() {
   var vdcode = $vdcode.val();
 
   var childArgs = [
-    path.join(__dirname, '/../shellCmd/doLogin.js'),
+    path.join(__dirname, '/../shellCmd/do_login.js'),
     userId,
     pwd,
     vdcode
@@ -67,7 +71,38 @@ function login() {
   child.stdout.on('data', function (data) {
     console.log('stdout: ' + data);
     if (data.indexOf('out_data:') > -1) {
-      dispose(data.toString().replace('out_data:', '').trim());
+      data.toString().split('\n').forEach(function(info) {
+        if (info.indexOf('out_data:') > -1) {
+          dispose(info.replace('out_data:', '').trim());
+        }
+      });
+    }
+  });
+
+  child.stderr.on('data', function (data) {
+    console.log('stderr: ' + data);
+  });
+
+  child.on('close', function (code) {
+    console.log('child process exited with code ' + code);
+  });
+}
+
+function autoUpload() {
+  var childArgs = [
+    path.join(__dirname, '/../shellCmd/auto_upload.js')
+  ];
+
+  var child = spawn(phantomjs.path, childArgs);
+
+  child.stdout.on('data', function (data) {
+    console.log('stdout: ' + data);
+    if (data.indexOf('out_data:') > -1) {
+      data.toString().split('\n').forEach(function(info) {
+        if (info.indexOf('out_data:') > -1) {
+          dispose(info.replace('out_data:', '').trim());
+        }
+      });
     }
   });
 
@@ -87,7 +122,10 @@ function dispose(signal) {
     case 'NO_LOGIN':
       $('#jsLogin').removeClass('hidden');
       $('#jsLoginCheck').addClass('hidden');
-      $('#vCodeImg').attr('src', '../test.png?_t=' + Math.random());
+      $('#vCodeImg').attr('src', '../v_code.png?_t=' + Math.random());
+      break;
+    case 'LOGGED':
+      autoUpload();
       break;
     default:
       console.log('无效命令：'+ signal);
