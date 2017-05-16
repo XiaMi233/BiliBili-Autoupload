@@ -27,46 +27,72 @@ if(fs.isFile(global.LOGIN_COOKIE_JAR)) {
   });
 }
 
-page.open('https://passport.bilibili.com/login', function(status) {
+page.open(global.URL_LOGIN, function(status) {
   if (status !== 'success') {
     console.error('进入登录页面失败!');
     phantom.exit();
   } else {
-    console.log('进入登录页面!');
+    console.log('开始登录');
     var injectStatus = page.injectJs(page.libraryPath + global.DIR_JQUERY);
 
     if (!injectStatus) {
       console.error('载入jquery失败');
-      phantom.exit()
+      phantom.exit();
     } else {
       setTimeout(function() {
 
-        var cookies = page.cookies;
+        page.onUrlChanged = function(targetUrl) {
+          console.log('登录：' + targetUrl);
+          //about:blank
+          // page.close();
+          // phantom.exit();
+        };
 
-        console.log('Listing cookies:');
-        for(var i in cookies) {
-          console.log(cookies[i].name + '=' + cookies[i].value);
+        page.onNavigationRequested = function(targetUrl) {
+          //基本判断登录失败
+          if (targetUrl === 'about:blank') {
+            console.log('out_data:LOGIN_ERROR');
+            phantom.exit();
+          }
         }
 
         page.evaluate(function (loginInfo) {
           console.log(loginInfo);
 
-          $('input[name=userid]').val('fdcsd6616@gmail.com');
-          $('input[name=pwd]').val('fdcsd6616-');
+          $.fn.trigger2 = function(eventName) {
+            return this.each(function() {
+              var el = $(this).get(0);
+              triggerNativeEvent(el, eventName);
+            });
+          };
+
+          function triggerNativeEvent(el, eventName){
+            if (el.fireEvent) { // < IE9
+              (el.fireEvent('on' + eventName));
+            } else {
+              var evt = document.createEvent('Events');
+              evt.initEvent(eventName, true, false);
+              el.dispatchEvent(evt);
+            }
+          }
+
+          $('.form-login .username input[type=text]').val('fdcsd6616@gmail.com').trigger2('input');
+          $('.form-login .password input[type=password]').val('fdcsd6616-').trigger2('input');
           // $('input[name=userid]').val(loginInfo.userId);
           // $('input[name=pwd]').val(loginInfo.pwd);
-          $('input[name=vdcode]').val(loginInfo.vdcode);
+          $('.form-login .vdcode input[type=text]').val(loginInfo.vdcode).trigger2('input');
 
-          $('.login').click();
+          $('.form-login .btn-login')[0].click();
 
         }, loginInfo);
       }, 1000);
 
       setTimeout(function() {
         fs.write(global.LOGINED_COOKIE_JAR, JSON.stringify(phantom.cookies), "w");
+        console.log('out_data:LOGIN_SUCCESS');
         page.render('doLogin.png');
         phantom.exit();
-      }, 5000);
+      }, 3000);
     }
   }
 });

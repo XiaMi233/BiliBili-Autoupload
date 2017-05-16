@@ -127,6 +127,12 @@ function dispose(signal) {
     case 'LOGGED':
       autoUpload();
       break;
+    case 'LOGIN_ERROR':
+      //获取验证码重新登录
+      break;
+    case 'LOGIN_SUCCESS':
+      //进行登录成功处理
+      break;
     default:
       console.log('无效命令：'+ signal);
       break;

@@ -29,24 +29,24 @@ page.open(global.URL_SUBMIT, function(status) {
       phantom.exit()
     } else {
       //暂时限定同时最大上传数量为30个
-      page.uploadFile('.upload-wrp input[type=file]', page.libraryPath + '/../../test.flv');
-      page.uploadFile('.upload-wrp input[type=file]', page.libraryPath + '/../../test1.flv');
-
-
-      console.log('上传开始');
-      setInterval(function () {
-        var results = page.evaluate(function () {
-          var $sortWrps = $('#sortWrp');
-          var $uploadInputs = $sortWrps.find('.status-wrp');
-
-          return $uploadInputs.map(function () {
-            return this.innerText;
-          }).get().join('\r\n');
-        });
-
-        page.render('submit.png');
-        console.log('上传进度：' + results);
-      }, 1000);
+      // page.uploadFile('.upload-wrp input[type=file]', page.libraryPath + '/../../test.flv');
+      // page.uploadFile('.upload-wrp input[type=file]', page.libraryPath + '/../../test1.flv');
+      //
+      //
+      // console.log('上传开始');
+      // setInterval(function () {
+      //   var results = page.evaluate(function () {
+      //     var $sortWrps = $('#sortWrp');
+      //     var $uploadInputs = $sortWrps.find('.status-wrp');
+      //
+      //     return $uploadInputs.map(function () {
+      //       return this.innerText;
+      //     }).get().join('\r\n');
+      //   });
+      //
+      //   page.render('submit.png');
+      //   console.log('上传进度：' + results);
+      // }, 1000);
     }
 
     // setTimeout(function () {
