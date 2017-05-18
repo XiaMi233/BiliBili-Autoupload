@@ -12,9 +12,11 @@
   <link charset="utf-8" rel="stylesheet" href="./styles/bootstrap.css">
 </head>
 <body>
-<div id="app">
-  <div id="jsLoginCheck" class="well">检查登录状态中。。。</div>
-  <form id="jsLogin" class="hidden" action="javascript:void(0)">
+<div id="app" class="row">
+  <!--登录验证-->
+  <div id="jsLoginCheck" class="well col-md-12">检查登录状态中。。。</div>
+  <!--登录表单-->
+  <form id="jsLogin" class="col-md-12 hidden" action="javascript:void(0)">
     <div class="form-group">
       <label for="exampleInputEmail1">你的手机号/邮箱</label>
       <input type="text" class="form-control" id="exampleInputEmail1" name="userid" placeholder="你的手机号/邮箱">
@@ -30,7 +32,28 @@
     </div>
     <button type="submit" class="btn btn-default">登录</button>
   </form>
-</div>
+  <!--登录成功后-->
+  <!--自动上传按钮-->
+  <div id="jsLogged" class="col-md-12 hidden" action="javascript:void(0)">
+    <div class="well">登录中</div>
+    <form id="jsAutoUploadBtn">
+      <div class="form-group">
+        <div class="checkbox">
+          <label>
+            <input type="checkbox" name="is-auto-upload"> 自动上传监测
+          </label>
+        </div>
+      </div>
+      <div class="form-group">
+        <button type="submit" class="btn btn-default">手动监测并上传</button>
+      </div>
+    </form>
+    <div id="jsUpload-monitor">
+      <div class="form-group">
+        <img id="monitorImg" class="img-thumbnail hidden" src="../upload_monitor.png">
+      </div>
+    </div>
+  </div>
 <script type="text/javascript" src="./index.js"></script>
 </body>
 </html>

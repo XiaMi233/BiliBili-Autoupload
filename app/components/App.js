@@ -115,23 +115,35 @@ function autoUpload() {
   });
 }
 
+function noLogin() {
+  $('#jsLogin').removeClass('hidden');
+  $('#jsLoginCheck').addClass('hidden');
+  $('#vCodeImg').attr('src', '../v_code.png?_t=' + Math.random());
+}
+
+function logged() {
+  $('#jsLoginCheck').addClass('hidden');
+  $('#jsLogged').removeClass('hidden');
+}
 
 function dispose(signal) {
   console.log('处理命令：'+ signal);
   switch(signal) {
     case 'NO_LOGIN':
-      $('#jsLogin').removeClass('hidden');
-      $('#jsLoginCheck').addClass('hidden');
-      $('#vCodeImg').attr('src', '../v_code.png?_t=' + Math.random());
+      noLogin();
       break;
     case 'LOGGED':
+    case 'LOGIN_SUCCESS':
+      //进行登录成功处理
+      logged();
       autoUpload();
       break;
     case 'LOGIN_ERROR':
       //获取验证码重新登录
       break;
-    case 'LOGIN_SUCCESS':
-      //进行登录成功处理
+    case 'MONITOR_UPDATE':
+      $('#monitorImg').removeClass('hidden').attr('src', '../upload_monitor.png?_t=' + Math.random());
+      //监测更新
       break;
     default:
       console.log('无效命令：'+ signal);
