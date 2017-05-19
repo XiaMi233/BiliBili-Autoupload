@@ -10,6 +10,8 @@
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
   <meta name="renderer" content="webkit"/>
   <link charset="utf-8" rel="stylesheet" href="./styles/bootstrap.css">
+  <link charset="utf-8" rel="stylesheet" href="./styles/toggle.css">
+  <link charset="utf-8" rel="stylesheet" href="./styles/main.css">
 </head>
 <body>
 <div id="app" class="row">
@@ -35,17 +37,33 @@
   <!--登录成功后-->
   <!--自动上传按钮-->
   <div id="jsLogged" class="col-md-12 hidden" action="javascript:void(0)">
-    <div class="well">登录中</div>
-    <form id="jsAutoUploadBtn">
+    <div class="well">已登录</div>
+    <form id="jsSettingForm" class="form-horizontal">
       <div class="form-group">
-        <div class="checkbox">
-          <label>
-            <input type="checkbox" name="is-auto-upload"> 自动上传监测
-          </label>
+        <label for="videoDir" class="col-sm-3 control-label">录像目录</label>
+        <div class="col-sm-9">
+          <a id="jsVideoDir" href="javascript:void(0)" class="js-setting control-file"><span id="jsVideoDirPath">选择目录录像</span>
+            <input type="file" id="videoDir" name="videoDir" webkitdirectory>
+          </a>
         </div>
       </div>
       <div class="form-group">
-        <button type="submit" class="btn btn-default">手动监测并上传</button>
+        <label for="jsIsAutoUpload" class="col-sm-3 control-label">自动上传监测</label>
+        <div class="col-sm-9">
+          <span class="toggleWrapper">
+            <input type="checkbox" name="is-auto-upload" class="js-setting mobileToggle" id="jsIsAutoUpload" checked>
+            <label for="jsIsAutoUpload"></label>
+          </span>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="jsIsUpload" class="col-sm-3 control-label">不上传今日直播（凌晨6点前）</label>
+        <div class="col-sm-9">
+          <span class="toggleWrapper">
+            <input type="checkbox" name="toggle1" class="js-setting mobileToggle" id="jsisupload" checked>
+            <label for="jsisupload"></label>
+          </span>
+        </div>
       </div>
     </form>
     <div id="jsUpload-monitor">
@@ -54,6 +72,7 @@
       </div>
     </div>
   </div>
+</div>
 <script type="text/javascript" src="./index.js"></script>
 </body>
 </html>

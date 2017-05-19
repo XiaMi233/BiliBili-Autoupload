@@ -3,9 +3,8 @@
  */
 var global = require('./global_variables');
 var webpage = require('webpage');
-var page = webpage.create();//创建webpage对象
-
-var fs = require('fs');
+var page = webpage.create();
+var tool = require('../lib/tool');
 
 var system = require('system');
 var args = system.args;
@@ -21,8 +20,10 @@ page.onUrlChanged = function(targetUrl) {
   // phantom.exit();
 };
 
-if(fs.isFile(global.LOGIN_COOKIE_JAR)) {
-  Array.prototype.forEach.call(JSON.parse(fs.read(global.LOGIN_COOKIE_JAR)), function(x) {
+const loginCookie = tool.fileRead(global.LOGIN_COOKIE_JAR);
+
+if (loginCookie) {
+  Array.prototype.forEach.call(loginCookie, function(x) {
     phantom.addCookie(x);
   });
 }
@@ -88,7 +89,7 @@ page.open(global.URL_LOGIN, function(status) {
       }, 1000);
 
       setTimeout(function() {
-        fs.write(global.LOGINED_COOKIE_JAR, JSON.stringify(phantom.cookies), "w");
+        tool.fileWrite(global.LOGINED_COOKIE_JAR, JSON.stringify(phantom.cookies));
         console.log('out_data:LOGIN_SUCCESS');
         page.render('doLogin.png');
         phantom.exit();

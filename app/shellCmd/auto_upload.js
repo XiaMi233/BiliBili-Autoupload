@@ -3,13 +3,17 @@
  */
 var global = require('./global_variables');
 var _ = require('lodash');
-var fs = require('fs');
+var tool = require('../lib/tool');
 
 var webpage = require('webpage');
 var page = webpage.create();
 
-if(fs.isFile(global.LOGINED_COOKIE_JAR)) {
-  Array.prototype.forEach.call(JSON.parse(fs.read(global.LOGINED_COOKIE_JAR)), function(x) {
+
+console.log(global.LOGINED_COOKIE_JAR);
+const loggedCookie = tool.fileRead(global.LOGINED_COOKIE_JAR);
+
+if (loggedCookie) {
+  Array.prototype.forEach.call(loggedCookie, function(x) {
     phantom.addCookie(x);
   });
 }
@@ -26,7 +30,7 @@ page.open(global.URL_SUBMIT, function(status) {
 
     if (!injectStatus) {
       console.error('载入jquery失败');
-      phantom.exit()
+      phantom.exit();
     } else {
       //暂时限定同时最大上传数量为30个
       console.log('上传开始');
@@ -35,10 +39,10 @@ page.open(global.URL_SUBMIT, function(status) {
       page.uploadFile('.upload-wrp input[type=file]', page.libraryPath + '/../../test1.flv');
 
       //新建
-      // page.uploadFile('.cover-box input[type=file]', page.libraryPath + '/../../covers/cover.png');
+      page.uploadFile('.cover-box input[type=file]', page.libraryPath + '/../../covers/cover.png');
       setTimeout(function () {
         page.evaluate(function () {
-          // $('.cover-wrp .btn-confirm').click();
+          $('.cover-wrp .btn-confirm').click();
 
           $('.title-wrp input[type=text]').val('2017年5月集合');
           $('.description-wrp textarea ').val('5月份的录播_(:з」∠)_');
@@ -63,13 +67,14 @@ page.open(global.URL_SUBMIT, function(status) {
 
         page.sendEvent('keypress', page.event.key.Enter);
 
-        page.evaluate(function () {
+        page.evaluate(function() {
           $('.recommend-wrp input[type=text]').val('录播').focus();
         });
 
         page.sendEvent('keypress', page.event.key.Enter);
       }, 500);
 
+      //只显示上传进度部分
       // setInterval(function () {
       //   var uploadObj = page.evaluate(function () {
       //     var $sortWrps = $('#sortWrp');

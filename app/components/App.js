@@ -1,18 +1,8 @@
-// var process = require('child_process');
-//直接调用命令
-
-// var child = process.exec('phantomjs ' + __dirname  + '/../shellCmd/login.js',
-//   function (error, stdout, stderr) {
-//     console.log(stdout);
-//     if (error !== null) {
-//       console.log('exec error:' + error);
-//     }
-//   });
-
 var $ = require('jquery');
 var path = require('path');
 var phantomjs = require('phantomjs');
 var spawn = require('child_process').spawn;
+var tool = require('../lib/tool');
 
 //检查登录状态
 
@@ -50,6 +40,17 @@ var $loginForm = $('#jsLogin');
 $loginForm.on('submit', function() {
   login();
 });
+
+$('.js-setting').on('change', function() {
+  const setting = $('#jsSettingForm').serializeArray();
+  console.log(setting);
+});
+
+$('#jsVideoDir').on('change', 'input[type=file]',function() {
+  var filePath = $(this).val();
+  $('#jsVideoDirPath').html(filePath);
+});
+
 
 function login() {
   var $userId = $loginForm.find('[name=userid]');

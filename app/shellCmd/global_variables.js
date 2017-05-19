@@ -9,5 +9,6 @@ global.URL_SUBMIT = 'https://member.bilibili.com/v/video/submit.html';
 global.URL_LOGIN = 'https://passport.bilibili.com/login';
 
 global.DIR_JQUERY = '/../lib/jquery-1.11.3.min.js';
+global.DIR_TOOL = '/../lib/tool.js';
 
 module.exports = global;
