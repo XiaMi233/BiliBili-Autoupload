@@ -59,6 +59,7 @@
     "lodash": "^4.17.4",
     "lodash.merge": "^4.3.3",
     "mkdirp": "^0.5.1",
+    "moment": "^2.18.1",
     "ncp": "^2.0.0",
     "path": "^0.12.7",
     "phantomjs": "^2.1.7+deprecated",

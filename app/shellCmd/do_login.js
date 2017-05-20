@@ -4,7 +4,7 @@
 var global = require('./global_variables');
 var webpage = require('webpage');
 var page = webpage.create();
-var tool = require('../lib/tool');
+var tool = require('../shellLib/tool');
 
 var system = require('system');
 var args = system.args;
@@ -77,10 +77,10 @@ page.open(global.URL_LOGIN, function(status) {
             }
           }
 
-          $('.form-login .username input[type=text]').val('fdcsd6616@gmail.com').trigger2('input');
-          $('.form-login .password input[type=password]').val('fdcsd6616-').trigger2('input');
-          // $('input[name=userid]').val(loginInfo.userId);
-          // $('input[name=pwd]').val(loginInfo.pwd);
+          // $('.form-login .username input[type=text]').val('fdcsd6616@gmail.com').trigger2('input');
+          // $('.form-login .password input[type=password]').val('fdcsd6616-').trigger2('input');
+          $('.form-login .username input[type=text]').val(loginInfo.userId).trigger2('input');
+          $('.form-login .password input[type=password]').val(loginInfo.pwd).trigger2('input');
           $('.form-login .vdcode input[type=text]').val(loginInfo.vdcode).trigger2('input');
 
           $('.form-login .btn-login')[0].click();
@@ -89,7 +89,7 @@ page.open(global.URL_LOGIN, function(status) {
       }, 1000);
 
       setTimeout(function() {
-        tool.fileWrite(global.LOGINED_COOKIE_JAR, JSON.stringify(phantom.cookies));
+        tool.fileWrite(global.LOGINED_COOKIE_JAR, phantom.cookies);
         console.log('out_data:LOGIN_SUCCESS');
         page.render('doLogin.png');
         phantom.exit();

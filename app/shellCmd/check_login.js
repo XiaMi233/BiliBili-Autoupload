@@ -2,14 +2,16 @@
  * Created by XiaMi on 2017/4/17.
  */
 var global = require('./global_variables');
-var _ = require('lodash');
 var fs = require('fs');
+var tool = require('../shellLib/tool');
 
 var webpage = require('webpage');
 var page = webpage.create();
 
-if(fs.isFile(global.LOGINED_COOKIE_JAR)) {
-  Array.prototype.forEach.call(JSON.parse(fs.read(global.LOGINED_COOKIE_JAR)), function(x) {
+const loggedCookie = tool.fileRead(global.LOGINED_COOKIE_JAR);
+
+if (loggedCookie) {
+  Array.prototype.forEach.call(loggedCookie, function(x) {
     phantom.addCookie(x);
   });
 }
@@ -18,7 +20,7 @@ page.onUrlChanged = function(targetUrl) {
 
 }
 
-page.open(global.URL_SUBMIT, function(status) {
+page.open(global.URL_ARTICLE, function(status) {
   if (status !== 'success') {
     page.close();
     console.log('检查登录状态:未登录');

@@ -1,11 +1,12 @@
-const electron = require('electron')
+const electron = require('electron');
+const {ipcMain, dialog} = require('electron');
 // Module to control application life.
-const app = electron.app
+const app = electron.app;
 // Module to create native browser window.
-const BrowserWindow = electron.BrowserWindow
+const BrowserWindow = electron.BrowserWindow;
 
-const path = require('path')
-const url = require('url')
+const path = require('path');
+const url = require('url');
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
@@ -58,3 +59,23 @@ app.on('activate', function () {
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and require them here.
+
+ipcMain.on('open-file-dialog-for-file', function (event) {
+  dialog.showOpenDialog(mainWindow, {
+    properties: ['openDirectory']
+  }, function (files) {
+    if (files) event.sender.send('selected-file', files[0]);
+  });
+  // if(os.platform() === 'linux' || os.platform() === 'win32') {
+  //   dialog.showOpenDialog({
+  //     properties: ['openFile']
+  //   }, function (files) {
+  //     if (files) event.sender.send('selected-file', files[0]);
+  //   });
+  // } else {
+  //   dialog.showOpenDialog({
+  //     properties: ['openFile', 'openDirectory']
+  //   }, function (files) {
+  //     if (files) event.sender.send('selected-file', files[0]);
+  //   });
+  });

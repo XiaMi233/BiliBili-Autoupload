@@ -14,7 +14,7 @@ var tool = {
   },
 
   fileWrite: function(path, obj) {
-      return fs.write(path, JSON.stringify(obj), 'w');
+      fs.write(path, JSON.stringify(obj), 'w');
   }
 };
 
