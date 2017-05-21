@@ -11,7 +11,13 @@ function spawnPhantom(path, childArgs, dispose) {
     if (data.indexOf('out_data:') > -1) {
       data.toString().split('\n').forEach(function(info) {
         if (info.indexOf('out_data:') > -1) {
-          dispose(info.replace('out_data:', '').trim());
+          var out = info.replace('out_data:', '').trim();
+          if (out.indexOf('|') > -1) {
+            out = out.split('|');
+            dispose(out[0], JSON.parse(out[1]));
+          } else {
+            dispose(out);
+          }
         }
       });
     }
@@ -24,6 +30,8 @@ function spawnPhantom(path, childArgs, dispose) {
   child.on('close', function (code) {
     console.log('child process exited with code ' + code);
   });
+
+  return child;
 }
 
 module.exports = spawnPhantom;

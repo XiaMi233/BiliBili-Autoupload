@@ -6,6 +6,14 @@ var tool = require('../shellLib/tool');
 
 var webpage = require('webpage');
 var page = webpage.create();
+var system = require('system');
+var args = system.args;
+
+var contributions = JSON.parse(args[1]);
+
+console.log('aaa' + JSON.stringify(contributions));
+
+phantom.exit();
 
 
 const loggedCookie = tool.fileRead(global.LOGINED_COOKIE_JAR);
