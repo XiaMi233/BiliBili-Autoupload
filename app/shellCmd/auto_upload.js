@@ -9,14 +9,11 @@ var page = webpage.create();
 var system = require('system');
 var args = system.args;
 
-var contributions = JSON.parse(args[1]);
-
-console.log('aaa' + JSON.stringify(contributions));
-
-phantom.exit();
-
+var files = JSON.parse(args[1]);
+var contributionInfo = JSON.parse(args[2]);
 
 const loggedCookie = tool.fileRead(global.LOGINED_COOKIE_JAR);
+var IS_SUBMIT = false;
 
 if (loggedCookie) {
   Array.prototype.forEach.call(loggedCookie, function(x) {
@@ -24,7 +21,9 @@ if (loggedCookie) {
   });
 }
 
-page.open(global.URL_SUBMIT, function(status) {
+var targetUrl = contributionInfo.exist ? contributionInfo.url : global.URL_SUBMIT;
+
+page.open(targetUrl, function(status) {
   if (status !== 'success') {
     console.error('自动上传开始失败!');
     phantom.exit();
@@ -38,16 +37,18 @@ page.open(global.URL_SUBMIT, function(status) {
     //   console.error('载入jquery失败');
     //   phantom.exit();
     // } else {
-      //暂时限定同时最大上传数量为30个
-      console.log('上传开始');
 
-      page.uploadFile('.upload-wrp input[type=file]', page.libraryPath + '/../../test.flv');
-      // page.uploadFile('.upload-wrp input[type=file]', page.libraryPath + '/../../test1.flv');
+    files.forEach(function(file) {
+      page.uploadFile('.upload-wrp input[type=file]', file.pathname);
+    });
 
-      //新建
+    //新建
+    if (!contributionInfo.exist) {
+
       page.uploadFile('.cover-box input[type=file]', page.libraryPath + '/../../covers/cover.png');
+
       setTimeout(function () {
-        page.evaluate(function () {
+        page.evaluate(function (contributionInfo) {
           $.fn.trigger2 = function(eventName) {
             return this.each(function() {
               var el = $(this).get(0);
@@ -67,8 +68,8 @@ page.open(global.URL_SUBMIT, function(status) {
 
           $('.cover-wrp .btn-confirm').click();
 
-          $('.title-wrp input[type=text]').val('2017年5月集合').trigger2('input');
-          $('.description-wrp textarea').val('5月份的录播_(:з」∠)_').trigger2('input');
+          $('.title-wrp input[type=text]').val('【直播录像】' + contributionInfo.contribution + '集合').trigger2('input');
+          $('.description-wrp textarea').val(contributionInfo.contribution + '份的录播_(:з」∠)_').trigger2('input');
           $('.copyright-wrp input[name=copyright]').filter('[value=1]').click();
 
           var $menus = $('.type-menu .dropdown');
@@ -88,7 +89,7 @@ page.open(global.URL_SUBMIT, function(status) {
           setTimeout(function() {
             $('.bilibili-tag-wrp .row .highlight')[0].click();
           }, 300);
-        });
+        }, contributionInfo);
 
         setTimeout(function() {
 
@@ -112,68 +113,74 @@ page.open(global.URL_SUBMIT, function(status) {
         }, 1000);
 
       }, 700);
+    }
 
-      //只显示上传进度部分
-      setInterval(function () {
-        var uploadObj = page.evaluate(function () {
-          var $sortWrps = $('#sortWrp');
-          var offset = $sortWrps.offset();
-          var height = $sortWrps.height();
-          var width = $sortWrps.width();
+    //只显示上传进度部分
+    // setInterval(function () {
+    //   var uploadObj = page.evaluate(function () {
+    //     var $sortWrps = $('#sortWrp');
+    //     var offset = $sortWrps.offset();
+    //     var height = $sortWrps.height();
+    //     var width = $sortWrps.width();
+    //
+    //     return {
+    //       top: offset.top,
+    //       left: offset.left,
+    //       height: height,
+    //       width: width
+    //     };
+    //   });
+    //
+    //   page.clipRect = uploadObj;
+    // }, 500);
 
-          return {
-            top: offset.top,
-            left: offset.left,
-            height: height,
-            width: width
-          };
+    setInterval(function () {
+      var results = page.evaluate(function () {
+        var $sortWrps = $('#sortWrp');
+        var $uploadInputs = $sortWrps.find('.status-wrp');
+
+        return $uploadInputs.map(function () {
+          return this.innerText;
+        }).get().join('\r\n');
+      });
+
+      page.render('screenshots/upload_monitor.png');
+      // page.render('screenshots/upload_monitor_' + contributionInfo.contribution + '.png');
+      console.log('out_data:MONITOR_UPDATE|' + JSON.stringify(contributionInfo.contribution));
+      console.log('上传进度：' + results);
+
+      var uploadStatus = page.evaluate(function() {
+        var uploadStatus = true;
+
+        $('.upload-wrp .upload-status').map(function(index, status) {
+          if ($(status).text().indexOf('上传完成') === -1) {
+            uploadStatus = false;
+          }
         });
 
-        page.clipRect = uploadObj;
-      }, 500);
+        return uploadStatus;
+      });
 
-      setInterval(function () {
-        var results = page.evaluate(function () {
-          var $sortWrps = $('#sortWrp');
-          var $uploadInputs = $sortWrps.find('.status-wrp');
 
-          return $uploadInputs.map(function () {
-            return this.innerText;
-          }).get().join('\r\n');
+      //全部上完后提交
+      if (uploadStatus && !IS_SUBMIT) {
+        IS_SUBMIT = true;
+        page.evaluate(function() {
+          $('.submit-wrp .submit-btn').click();
         });
 
-        page.render('upload_monitor.png');
-        console.log('out_data:MONITOR_UPDATE');
-        console.log('上传进度：' + results);
+        setTimeout(function() {
+          console.log('上传文件完成');
 
-        var uploadStatus = page.evaluate(function() {
-          var uploadStatus = true;
-
-          $('.upload-wrp .upload-status').map(function(index, status) {
-            if ($(status).text().indexOf('上传完成') === -1) {
-              uploadStatus = false;
-            }
-          });
-          // if ()
-          // $('.submit-wrp .submit-btn').click();
-
-          return uploadStatus;
-        });
-
-
-        //全部上完后提交
-        if (uploadStatus) {
-          // page.evaluate(function() {
-          //   $('.submit-wrp .submit-btn').click();
-          // });
-          // setTimeout(function () {
-          //   console.log('上传文件完成');
-          //   page.render('submit.png');
-          //   phantom.exit();
-          // }, 5000);
-        }
-
-      }, 500);
+          page.render('screenshots/upload_finish.png');
+          console.log('out_data:UPLOAD_COMPLETE|' + JSON.stringify({
+              files: files,
+              contributionName: contributionInfo.contribution
+            }));
+          phantom.exit();
+        }, 5000);
+      }
+    }, 500);
     // }
   }
 });

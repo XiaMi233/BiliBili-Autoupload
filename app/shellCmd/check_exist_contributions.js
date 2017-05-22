@@ -70,20 +70,28 @@ function checkContributions(contribution, index) {
       page.sendEvent('keypress', page.event.key.Enter);
 
       setTimeout(function() {
-        var exist = page.evaluate(function () {
+        var searchInfo = page.evaluate(function () {
           if ($('.info-wrp .text').text().indexOf('获取稿件失败') > -1) {
             console.log('搜索同名稿件失败');
             checkContributions(contribution, 0);
-            return -1;
+            return null;
           } else {
-            return $('.article-card').length;
+            var url = $('.article-card .meta-footer .edit').attr('href');
+            if (url && url.indexOf('http') === -1) {
+              url = 'https:' + url;
+            }
+            return {
+              exist: $('.article-card').length,
+              url: url
+            };
           }
         });
 
-        if (exist > -1) {
+        if (searchInfo && searchInfo.exist > -1) {
           console.log('out_data:CONTRIBUTION_CHECKED|' + JSON.stringify({
               contribution: contribution,
-              exist: !!exist
+              exist: !!searchInfo.exist,
+              url: searchInfo.url
             }));
 
           page.render('screenshots/exist-' + index + '.png');

@@ -16,15 +16,17 @@ if (loggedCookie) {
   });
 }
 
-page.onUrlChanged = function(targetUrl) {
-
-}
-
-page.open(global.URL_ARTICLE, function(status) {
-  if (status !== 'success') {
+page.onNavigationRequested = function(targetUrl) {
+  if (targetUrl.indexOf('login') > -1) {
     page.close();
     console.log('检查登录状态:未登录');
     getValidCode();
+  }
+};
+
+page.open(global.URL_ARTICLE, function(status) {
+  if (status !== 'success') {
+    phantom.exit();
   } else {
     page.close();
     console.log('检查登录状态:已登录');

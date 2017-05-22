@@ -79,3 +79,8 @@ ipcMain.on('open-file-dialog-for-file', function (event) {
   //     if (files) event.sender.send('selected-file', files[0]);
   //   });
   });
+
+ipcMain.on('relaunch', function() {
+  app.relaunch({args: process.argv.slice(1).concat(['--relaunch'])});
+  app.exit(0);
+});

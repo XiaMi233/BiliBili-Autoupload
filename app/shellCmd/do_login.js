@@ -14,6 +14,7 @@ var loginInfo = {
   pwd: args[2],
   vdcode: args[3]
 };
+var LOGIN_STATUS = false;
 
 page.onUrlChanged = function(targetUrl) {
   // page.close();
@@ -41,21 +42,23 @@ page.open(global.URL_LOGIN, function(status) {
       phantom.exit();
     } else {
       setTimeout(function() {
-
         page.onUrlChanged = function(targetUrl) {
-          console.log('登录：' + targetUrl);
+          LOGIN_STATUS = true;
           //about:blank
           // page.close();
           // phantom.exit();
         };
 
-        page.onNavigationRequested = function(targetUrl) {
-          //基本判断登录失败
-          if (targetUrl === 'about:blank') {
-            console.log('out_data:LOGIN_ERROR');
-            phantom.exit();
-          }
-        }
+        // page.onNavigationRequested = function(targetUrl) {
+        //   //基本判断登录失败
+        //   console.log('登录失败判断');
+        //   if (targetUrl === 'about:blank') {
+        //     console.log('out_data:LOGIN_ERROR');
+        //     clearTimeout(successTimer);
+        //     page.close();
+        //     phantom.exit();
+        //   }
+        // }
 
         page.evaluate(function (loginInfo) {
           console.log(loginInfo);
@@ -89,9 +92,21 @@ page.open(global.URL_LOGIN, function(status) {
       }, 1000);
 
       setTimeout(function() {
-        tool.fileWrite(global.LOGINED_COOKIE_JAR, phantom.cookies);
-        console.log('out_data:LOGIN_SUCCESS');
-        page.render('doLogin.png');
+        if (LOGIN_STATUS) {
+          tool.fileWrite(global.LOGINED_COOKIE_JAR, phantom.cookies);
+          console.log('out_data:LOGIN_SUCCESS');
+          page.render('doLogin.png');
+        } else {
+          var errorMsg = page.evaluate(function () {
+            var errorMsg = [];
+            $('.form-login .tips').map(function(index, tip) {
+              errorMsg.push($(tip).text());
+            });
+
+            return errorMsg;
+          });
+          console.log('out_data:LOGIN_ERROR|' + JSON.stringify(errorMsg));
+        }
         phantom.exit();
       }, 3000);
     }

@@ -1,6 +1,7 @@
 const {ipcRenderer} = require('electron');
 
-var $ = require('jquery');
+window.$ = window.jQuery = require('../vendor/jquery-3.2.1');
+
 var path = require('path');
 var phantomjs = require('phantomjs');
 var spawn = require('child_process').spawn;
@@ -9,6 +10,8 @@ var moment = require('moment');
 var analyzeDir = require('./analyze_dir');
 var spawnPhantom = require('./spawn-phantom');
 var _ = require('lodash');
+
+var global = require('../shellCmd/global_variables');
 
 //检查登录状态
 
@@ -19,12 +22,26 @@ var LOGGED = false;
 var IS_RECORDING = false;
 var RECORDING_CHECK_DURATION = 3 * 60 * 1000;
 var INIT_CHECK_RECORDING = true;
+var CONTRIBUTION_LIST_LENGTH = 0;
+var CHECKED_CONTRIBUTION_LIST_LENGTH = 0;
+var CONTRIBUTIONS_CHECKING  = false;
+//最小上传文件大小
+var MIN_FILE_SIZE = 1; //40MB
+// var MIN_FILE_SIZE = 40000000; //40MB
+
 
 //是否存在的稿子
 var CONTRIBUTION_LIST = [];
+var CONTRIBUTION_CHECKED = false;
 //需要上传的全部录像文件
 var FILE_LIST = [];
 var UPLOAD_CONTRIBUTION_LIST = [];
+
+//是否正在上传标志
+var IS_UPLOADING = false;
+
+//上传spawn
+var UPLOADING_SPAWN;
 
 //设置
 var SETTING = {};
@@ -32,6 +49,13 @@ var SETTING = {};
 function checkLogin() {
   var childArgs = [
     path.join(__dirname, '/../shellCmd/check_login.js'),
+  ];
+  spawnPhantom(phantomjs.path, childArgs, dispose);
+}
+
+function getVCode() {
+  var childArgs = [
+    path.join(__dirname, '/../shellCmd/get_valid_code.js'),
   ];
   spawnPhantom(phantomjs.path, childArgs, dispose);
 }
@@ -69,7 +93,19 @@ function checkNeedContributions() {
     console.log('未登录 不验证稿件');
     return false;
   }
+
+  if (CONTRIBUTIONS_CHECKING) {
+    return false;
+  }
+
   updateFileList();
+
+  if (_.isEmpty(FILE_LIST)) {
+    return false;
+  }
+
+  CONTRIBUTIONS_CHECKING = true;
+
   var contributions = _(FILE_LIST).chain().map(function(file) {
     file.timestamp = moment(file.filename, 'YYYYMMDD_HHmmss.flv').unix();
     return file;
@@ -79,6 +115,7 @@ function checkNeedContributions() {
   }).map(function(file) {
     return moment(file.filename, 'YYYYMMDD_HHmmss.flv').format('YYYY年MM月');
   }).uniq().value();
+  CONTRIBUTION_LIST_LENGTH = contributions.length;
 
   checkExistContributions(contributions);
 }
@@ -86,6 +123,18 @@ function checkNeedContributions() {
 //事件绑定 暂时放这
 $loginForm.on('submit', function() {
   login();
+});
+$('#jsLogout').on('click', function() {
+  $('#jsLogoutDialog').modal('show');
+});
+$('#jsLogoutConfirm').on('click', function() {
+  //删除登录cookiejar，并重启软件
+  fs.unlink(global.LOGINED_COOKIE_JAR, function(err, data) {
+    if (err) return false;
+
+    ipcRenderer.send('relaunch');
+    $('#jsLogoutDialog').modal('hide');
+  });
 });
 
 $('.js-setting').on('change', function() {
@@ -122,9 +171,20 @@ function settingUpdate() {
   INIT_CHECK_RECORDING = true;
   //是否存在的稿子
   CONTRIBUTION_LIST = [];
-  checkNeedContributions();
+  CONTRIBUTION_CHECKED = false;
+  CHECKED_CONTRIBUTION_LIST_LENGTH = 0;
+  CONTRIBUTIONS_CHECKING  = false;
+  IS_UPLOADING = false;
 
   //停止所有正在上传的视频
+
+  if (UPLOADING_SPAWN) {
+    UPLOADING_SPAWN.kill('SIGHUP');
+  }
+
+  UPLOAD_CONTRIBUTION_LIST = [];
+
+  checkNeedContributions();
 
   console.log('设置更新完毕');
 }
@@ -143,6 +203,8 @@ function login() {
     pwd,
     vdcode
   ];
+  $('#jsError').html('');
+  $('#jsLoginSubmit').button('loading');
 
   spawnPhantom(phantomjs.path, childArgs, dispose);
 }
@@ -156,38 +218,50 @@ setInterval(function() {
   }
 }, 5000);
 
+function moveSmallFile() {
+  FILE_LIST = _.filter(FILE_LIST, (file) => {
+    const isNeedUpload = analyzeDir.getFileSize(file.pathname) > MIN_FILE_SIZE;
+    if (!isNeedUpload) {
+      if (!fs.existsSync(path.resolve(SETTING['video-dir'], 'not_upload'))) {
+        fs.mkdirSync(path.resolve(SETTING['video-dir'], 'not_upload'));
+      }
+      fs.rename(file.pathname, path.resolve(SETTING['video-dir'], 'not_upload', file.filename), function(err, data) {
+        if (err) return false;
+      });
+    }
+    return isNeedUpload;
+  });
+}
+
 function uploadAll() {
   //上传的时候file_list是不会变化的，录播的时候不上传，上传途中则停止上传
 
-  if (!UPLOAD_CONTRIBUTION_LIST.length) {
-    console.log('asdfasd' + UPLOAD_CONTRIBUTION_LIST.length);
+  if (_.isEmpty(UPLOAD_CONTRIBUTION_LIST)) {
+    //检查所有文件，把小于最小上传大小的文件移动到不需要上传的目录
+    moveSmallFile();
     UPLOAD_CONTRIBUTION_LIST = _(FILE_LIST).map(function(file) {
       file.timestamp = moment(file.filename, 'YYYYMMDD_HHmmss.flv').unix();
       file.contributionName = moment(file.filename, 'YYYYMMDD_HHmmss.flv').format('YYYY年MM月');
       return file;
     }).groupBy('contributionName').value();
-
-    _.each(UPLOAD_CONTRIBUTION_LIST, function(uploadContribution) {
-      uploadContribution.child = autoUpload(uploadContribution);
-    });
   }
 
-  // console.log(FILE_LIST, contributions);
-  // autoUpload();
-  // "2017年04月"
-  // filename
-  //   :
-  //   "20170413_170753.flv"
-  // pathname
-  //   :
-  //   "D:\录制\35582/20170413_170753.flv"
-  // timestamp
-  //   :
-  //   1492074473
+  if (!_.isEmpty(UPLOAD_CONTRIBUTION_LIST)) {
+    IS_UPLOADING = true;
+    var contribution = _.find(CONTRIBUTION_LIST, {
+      complete: false
+    });
+
+    UPLOADING_SPAWN = autoUpload(UPLOAD_CONTRIBUTION_LIST[contribution.contribution], contribution);
+    delete UPLOAD_CONTRIBUTION_LIST[contribution.contribution];
+  }
 }
 
 function checkRecording() {
   updateFileList();
+  if (_.isEmpty(FILE_LIST)) {
+    return false;
+  }
   const lastVideo = _(FILE_LIST).chain().map(function(file) {
     file.timestamp = moment(file.filename, 'YYYYMMDD_HHmmss.flv').unix();
     return file;
@@ -221,18 +295,23 @@ function checkRecording() {
       console.log('退出录播状态三分钟');
     }, RECORDING_CHECK_DURATION);
   } else {
-    console.log('未录播');
+    console.log('未录播', INIT_CHECK_RECORDING, IS_RECORDING, IS_UPLOADING, CONTRIBUTION_CHECKED);
   }
 
-  if (!INIT_CHECK_RECORDING && !IS_RECORDING) {
+  if (!INIT_CHECK_RECORDING && !IS_RECORDING && !IS_UPLOADING && !CONTRIBUTION_CHECKED) {
+    checkNeedContributions();
+  }
+
+  if (!INIT_CHECK_RECORDING && !IS_RECORDING && !IS_UPLOADING && CONTRIBUTION_CHECKED) {
     uploadAll();
   }
 }
 
-function autoUpload(uploadContribution) {
+function autoUpload(uploadContribution, contribution) {
   var childArgs = [
     path.join(__dirname, '/../shellCmd/auto_upload.js'),
-    JSON.stringify(uploadContribution)
+    JSON.stringify(uploadContribution),
+    JSON.stringify(contribution)
   ];
 
   return spawnPhantom(phantomjs.path, childArgs, dispose);
@@ -251,6 +330,9 @@ function noLogin() {
   $('#jsLogin').removeClass('hidden');
   $('#jsLoginCheck').addClass('hidden');
   $('#vCodeImg').attr('src', '../v_code.png?_t=' + Math.random());
+
+  $('#jsLoginSubmit').button('reset').text('登录');
+  $('#jsError').html('');
 }
 
 function logged() {
@@ -258,11 +340,55 @@ function logged() {
   $('#jsLoginCheck').addClass('hidden');
   $('#jsLogin').addClass('hidden');
   $('#jsLogged').removeClass('hidden');
+  $('#jsLoginSubmit').button('reset');
+}
+
+function loginError(errorMsgs) {
+  $('#jsError').html(errorMsgs.map((error) => {
+    return error ? '<p>' + error + '</p>' : '';
+  }));
+  $('#jsLoginSubmit').text('重新获取验证码中');
+  getVCode();
 }
 
 function contributionDispose(obj) {
+  obj.complete = false;
   CONTRIBUTION_LIST.push(obj);
   CONTRIBUTION_LIST = _.uniqBy(CONTRIBUTION_LIST, 'contribution');
+  CHECKED_CONTRIBUTION_LIST_LENGTH++;
+  if (CONTRIBUTION_LIST_LENGTH === CHECKED_CONTRIBUTION_LIST_LENGTH) {
+    CONTRIBUTION_CHECKED = true;
+    console.log('投稿检测完成');
+  }
+}
+
+function uploadComplete(obj) {
+  _.find(CONTRIBUTION_LIST, {
+    contribution: obj.contributionName
+  }).complete = true;
+
+  moveCompleteFiles(obj.files);
+
+  if (_.filter(CONTRIBUTION_LIST, {
+    complete: false
+    }).length === 0) {
+    console.log('稿件全部上传完成');
+    settingUpdate();
+  }
+
+  UPLOADING_SPAWN = null;
+  IS_UPLOADING = false;
+}
+
+function moveCompleteFiles(fileList) {
+  _.each(fileList, (file) => {
+    if (!fs.existsSync(path.resolve(SETTING['video-dir'], 'uploaded'))) {
+      fs.mkdirSync(path.resolve(SETTING['video-dir'], 'uploaded'));
+    }
+    fs.rename(file.pathname, path.resolve(SETTING['video-dir'], 'uploaded', file.filename), function(err, data) {
+      if (err) return false;
+    });
+  });
 }
 
 function dispose(signal, obj) {
@@ -275,18 +401,20 @@ function dispose(signal, obj) {
     case 'LOGIN_SUCCESS':
       //进行登录成功处理
       logged();
-      checkNeedContributions();
       break;
     case 'LOGIN_ERROR':
       //获取验证码重新登录
+      loginError(obj);
       break;
-
     case 'CONTRIBUTION_CHECKED':
       contributionDispose(obj);
       break;
     case 'MONITOR_UPDATE':
-      $('#monitorImg').removeClass('hidden').attr('src', '../upload_monitor.png?_t=' + Math.random());
+      $('#monitorImg').removeClass('hidden').attr('src', '../screenshots/upload_monitor.png?_t=' + Math.random());
       //上传进度监测更新
+      break;
+    case 'UPLOAD_COMPLETE':
+      uploadComplete(obj);
       break;
     default:
       console.log('无效命令：'+ signal);
