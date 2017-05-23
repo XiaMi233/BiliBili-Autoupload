@@ -95,7 +95,7 @@ page.open(global.URL_LOGIN, function(status) {
         if (LOGIN_STATUS) {
           tool.fileWrite(global.LOGINED_COOKIE_JAR, phantom.cookies);
           console.log('out_data:LOGIN_SUCCESS');
-          page.render('doLogin.png');
+          page.render('screenshots/login_success.png');
         } else {
           var errorMsg = page.evaluate(function () {
             var errorMsg = [];

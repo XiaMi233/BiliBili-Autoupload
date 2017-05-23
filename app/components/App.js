@@ -4,11 +4,11 @@ window.$ = window.jQuery = require('../vendor/jquery-3.2.1');
 
 var path = require('path');
 var phantomjs = require('phantomjs');
-var spawn = require('child_process').spawn;
+var {exec} = require('child_process');
 var fs = require('fs');
 var moment = require('moment');
 var analyzeDir = require('./analyze_dir');
-var spawnPhantom = require('./spawn-phantom');
+var spawnPhantom = require('./spawn_phantom');
 var _ = require('lodash');
 
 var global = require('../shellCmd/global_variables');
@@ -18,16 +18,16 @@ var global = require('../shellCmd/global_variables');
 //是否登录
 var LOGGED = false;
 
-//是否正在录像 3分钟断档
+//是否正在录像 2分钟断档
+var RECORDING_CHECK_DURATION = 2 * 60 * 1000;
 var IS_RECORDING = false;
-var RECORDING_CHECK_DURATION = 3 * 60 * 1000;
 var INIT_CHECK_RECORDING = true;
 var CONTRIBUTION_LIST_LENGTH = 0;
 var CHECKED_CONTRIBUTION_LIST_LENGTH = 0;
 var CONTRIBUTIONS_CHECKING  = false;
 //最小上传文件大小
-var MIN_FILE_SIZE = 1; //40MB
-// var MIN_FILE_SIZE = 40000000; //40MB
+// var MIN_FILE_SIZE = 1; //40MB
+var MIN_FILE_SIZE = 40000000; //40MB
 
 
 //是否存在的稿子
@@ -60,16 +60,17 @@ function getVCode() {
   spawnPhantom(phantomjs.path, childArgs, dispose);
 }
 
-checkLogin();
 
 //读取设置
 
 var $loginForm = $('#jsLogin');
 var $settingForm = $('#jsSettingForm');
 
-readSetting();
-
 function readSetting() {
+  if (!fs.existsSync(path.resolve(__dirname, '../../setting.ini'))) {
+    return false;
+  }
+
   fs.readFile(path.resolve(__dirname, '../../setting.ini'), function(err, data) {
     if (err) throw err;
     SETTING = JSON.parse(data.toString());
@@ -129,7 +130,7 @@ $('#jsLogout').on('click', function() {
 });
 $('#jsLogoutConfirm').on('click', function() {
   //删除登录cookiejar，并重启软件
-  fs.unlink(global.LOGINED_COOKIE_JAR, function(err, data) {
+  fs.unlink(path.resolve(global.LOGINED_COOKIE_JAR), function(err, data) {
     if (err) return false;
 
     ipcRenderer.send('relaunch');
@@ -144,7 +145,7 @@ $('.js-setting').on('change', function() {
     'is-today-upload': $settingForm.find('input[name=is-today-upload]').is(':checked') ? 1 : 0
   };
 
-  fs.writeFile(path.resolve(__dirname, '../../setting.ini'), JSON.stringify(setting), (err) => {
+  fs.writeFile(path.resolve('setting.ini'), JSON.stringify(setting), (err) => {
     if (err) throw err;
     //设定更改后
     readSetting();
@@ -155,10 +156,18 @@ $('#jsVideoDir').on('click', function (event) {
   ipcRenderer.send('open-file-dialog-for-file');
 });
 
+//ipc
 ipcRenderer.on('selected-file', function(event, path) {
   if (SETTING['video-dir'] !== path) {
     $('#jsVideoDir').text(path);
     $('#jsVideoDirPath').val(path).change();
+  }
+});
+
+ipcRenderer.on('got-auto-shutdown', function(event, autoShutdown) {
+  if (autoShutdown) {
+    exec('shutdown /s /t 180');
+    ipcRenderer.send('auto-shutdown-off');
   }
 });
 
@@ -169,6 +178,7 @@ function settingUpdate() {
   FILE_LIST = [];
 
   INIT_CHECK_RECORDING = true;
+  CONTRIBUTION_LIST_LENGTH = 0;
   //是否存在的稿子
   CONTRIBUTION_LIST = [];
   CONTRIBUTION_CHECKED = false;
@@ -211,12 +221,6 @@ function login() {
 
 var lastVideoSize;
 var recordingCheckFlag;
-
-setInterval(function() {
-  if (LOGGED && SETTING['video-dir']) {
-    checkRecording();
-  }
-}, 5000);
 
 function moveSmallFile() {
   FILE_LIST = _.filter(FILE_LIST, (file) => {
@@ -292,7 +296,7 @@ function checkRecording() {
     clearTimeout(recordingCheckFlag);
     recordingCheckFlag = setTimeout(function() {
       IS_RECORDING = false;
-      console.log('退出录播状态三分钟');
+      console.log('退出录播状态2分钟');
     }, RECORDING_CHECK_DURATION);
   } else {
     console.log('未录播', INIT_CHECK_RECORDING, IS_RECORDING, IS_UPLOADING, CONTRIBUTION_CHECKED);
@@ -305,6 +309,12 @@ function checkRecording() {
   if (!INIT_CHECK_RECORDING && !IS_RECORDING && !IS_UPLOADING && CONTRIBUTION_CHECKED) {
     uploadAll();
   }
+
+  //进入录播状态则停止上传
+  if(IS_RECORDING && UPLOADING_SPAWN) {
+    UPLOADING_SPAWN.kill('SIGHUP');
+    settingUpdate();
+  }
 }
 
 function autoUpload(uploadContribution, contribution) {
@@ -313,6 +323,11 @@ function autoUpload(uploadContribution, contribution) {
     JSON.stringify(uploadContribution),
     JSON.stringify(contribution)
   ];
+
+  ipcRenderer.send('show-balloon', {
+    title: '上传消息',
+    content: '开始上传稿件 【直播录像】' + contribution.contribution + '集合'
+  });
 
   return spawnPhantom(phantomjs.path, childArgs, dispose);
 }
@@ -329,7 +344,7 @@ function checkExistContributions(contributions) {
 function noLogin() {
   $('#jsLogin').removeClass('hidden');
   $('#jsLoginCheck').addClass('hidden');
-  $('#vCodeImg').attr('src', '../v_code.png?_t=' + Math.random());
+  $('#vCodeImg').attr('src', path.resolve('screenshots/v_code.png') + '?_t=' + Math.random());
 
   $('#jsLoginSubmit').button('reset').text('登录');
   $('#jsError').html('');
@@ -367,16 +382,26 @@ function uploadComplete(obj) {
     contribution: obj.contributionName
   }).complete = true;
 
+  ipcRenderer.send('show-balloon', {
+    title: '上传消息',
+    content: '稿件 【直播录像】' + obj.contributionName + '集合上传完成'
+  });
+
   moveCompleteFiles(obj.files);
+
+  UPLOADING_SPAWN = null;
 
   if (_.filter(CONTRIBUTION_LIST, {
     complete: false
     }).length === 0) {
-    console.log('稿件全部上传完成');
+    ipcRenderer.send('show-balloon', {
+      title: '上传消息',
+      content: '稿件全部上传完成'
+    });
+    ipcRenderer.send('get-auto-shutdown');
     settingUpdate();
   }
 
-  UPLOADING_SPAWN = null;
   IS_UPLOADING = false;
 }
 
@@ -410,7 +435,7 @@ function dispose(signal, obj) {
       contributionDispose(obj);
       break;
     case 'MONITOR_UPDATE':
-      $('#monitorImg').removeClass('hidden').attr('src', '../screenshots/upload_monitor.png?_t=' + Math.random());
+      $('#monitorImg').removeClass('hidden').attr('src', path.resolve('screenshots/upload_monitor.png') + '?_t=' + Math.random());
       //上传进度监测更新
       break;
     case 'UPLOAD_COMPLETE':
@@ -422,3 +447,17 @@ function dispose(signal, obj) {
   }
 }
 
+function appInit() {
+  checkLogin();
+  readSetting();
+
+  setInterval(function() {
+    if (LOGGED && SETTING['video-dir']) {
+      checkRecording();
+    }
+  }, 5000);
+}
+
+appInit();
+
+ipcRenderer.send('get-auto-shutdown');

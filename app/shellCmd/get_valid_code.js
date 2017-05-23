@@ -60,9 +60,9 @@ function getValidCode() {
 
           // setTimeout(function () {
           console.log('获取验证码');
-          page.render('all.png');
+          page.render('screenshots/login_page.png');
           page.clipRect = imgObj;
-          page.render('v_code.png');
+          page.render('screenshots/v_code.png');
           // console.log(injectStatus);
           console.log('out_data:NO_LOGIN');
           phantom.exit();
