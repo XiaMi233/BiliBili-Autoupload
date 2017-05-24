@@ -67,11 +67,11 @@ var $loginForm = $('#jsLogin');
 var $settingForm = $('#jsSettingForm');
 
 function readSetting() {
-  if (!fs.existsSync(path.resolve(__dirname, '../../setting.ini'))) {
+  if (!fs.existsSync(path.resolve('setting.ini'))) {
     return false;
   }
 
-  fs.readFile(path.resolve(__dirname, '../../setting.ini'), function(err, data) {
+  fs.readFile(path.resolve('setting.ini'), function(err, data) {
     if (err) throw err;
     SETTING = JSON.parse(data.toString());
     if (SETTING['video-dir']) {
@@ -108,17 +108,28 @@ function checkNeedContributions() {
   CONTRIBUTIONS_CHECKING = true;
 
   var contributions = _(FILE_LIST).chain().map(function(file) {
-    file.timestamp = moment(file.filename, 'YYYYMMDD_HHmmss.flv').unix();
+    file.timestamp = timeConvert(file.filename).unix();
     return file;
   }).sortBy(function(o) {
     return o.timestamp;
     // 'timestamp'
   }).map(function(file) {
-    return moment(file.filename, 'YYYYMMDD_HHmmss.flv').format('YYYY年MM月');
+    return timeConvert(file.filename).format('YYYY年MM月');
   }).uniq().value();
   CONTRIBUTION_LIST_LENGTH = contributions.length;
 
   checkExistContributions(contributions);
+}
+
+function timeConvert(filename) {
+  const formattedTime = moment(filename, 'YYYYMMDD_HHmmss.flv');
+  const timestamp = formattedTime.unix();
+  if (!timestamp || timestamp > 10000000000) {
+    //说明格式错误
+    return moment(filename.replace(/.*?-/, ''), 'YYYY-MM-DD-HH-mm-ss.flv');
+  } else {
+    return formattedTime;
+  }
 }
 
 //事件绑定 暂时放这
@@ -244,8 +255,8 @@ function uploadAll() {
     //检查所有文件，把小于最小上传大小的文件移动到不需要上传的目录
     moveSmallFile();
     UPLOAD_CONTRIBUTION_LIST = _(FILE_LIST).map(function(file) {
-      file.timestamp = moment(file.filename, 'YYYYMMDD_HHmmss.flv').unix();
-      file.contributionName = moment(file.filename, 'YYYYMMDD_HHmmss.flv').format('YYYY年MM月');
+      file.timestamp = timeConvert(file.filename).unix();
+      file.contributionName = timeConvert(file.filename).format('YYYY年MM月');
       return file;
     }).groupBy('contributionName').value();
   }
@@ -267,7 +278,7 @@ function checkRecording() {
     return false;
   }
   const lastVideo = _(FILE_LIST).chain().map(function(file) {
-    file.timestamp = moment(file.filename, 'YYYYMMDD_HHmmss.flv').unix();
+    file.timestamp = timeConvert(file.filename).unix();
     return file;
   }).sortBy(function(o) {
     return -o.timestamp;
@@ -459,5 +470,3 @@ function appInit() {
 }
 
 appInit();
-
-ipcRenderer.send('get-auto-shutdown');

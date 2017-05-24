@@ -2,7 +2,7 @@
 <html lang="zh-cn">
 <head>
   <meta charset="UTF-8">
-  <title>Webpack App</title>
+  <!--<title>Webpack App</title>-->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
   <meta name="keywords" content="Webpack App">
   <meta name="description" content="Webpack App">
@@ -14,10 +14,10 @@
   <link charset="utf-8" rel="stylesheet" href="./styles/toggle.css">
   <link charset="utf-8" rel="stylesheet" href="./styles/main.css">
 </head>
-<body>
+<body class="container-fluid">
 <div id="app" class="row">
   <!--登录验证-->
-  <div id="jsLoginCheck" class="well col-md-12">检查登录状态。。。</div>
+  <div id="jsLoginCheck" class="well">检查登录状态。。。</div>
   <!--登录表单-->
   <form id="jsLogin" class="col-md-12 hidden" action="javascript:void(0)">
     <div class="form-group">
@@ -38,7 +38,7 @@
   </form>
   <!--登录成功后-->
   <!--自动上传按钮-->
-  <div id="jsLogged" class="col-md-12 hidden" action="javascript:void(0)">
+  <div id="jsLogged" class="hidden" action="javascript:void(0)">
     <div class="well">
       已登录
       <button id="jsLogout" type="button" class="btn btn-danger pull-right btn-xs">退出登录</button>
@@ -61,7 +61,7 @@
         </div>
       </div>
     </div>
-    <form id="jsSettingForm" class="form-horizontal">
+    <form id="jsSettingForm" class="col-md-12 form-horizontal">
       <div class="form-group">
         <label for="jsVideoDir" class="col-sm-3 control-label">录像目录</label>
         <div class="col-sm-9">

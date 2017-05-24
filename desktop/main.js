@@ -1,5 +1,5 @@
 const electron = require('electron');
-const {ipcMain, dialog, Menu, Tray} = require('electron');
+const {ipcMain, dialog, Menu, Tray, autoUpdater} = require('electron');
 // Module to control application life.
 const app = electron.app;
 // Module to create native browser window.
@@ -21,11 +21,61 @@ let tray;
 
 var APP_NAME = '录播自动上传工具';
 
+function startupEventHandle(){
+  if(require('electron-squirrel-startup')) return;
+  var handleStartupEvent = function () {
+    if (process.platform !== 'win32') {
+      return false;
+    }
+    var squirrelCommand = process.argv[1];
+    switch (squirrelCommand) {
+      case '--squirrel-install':
+      case '--squirrel-updated':
+        install();
+        return true;
+      case '--squirrel-uninstall':
+        uninstall();
+        app.quit();
+        return true;
+      case '--squirrel-obsolete':
+        app.quit();
+        return true;
+    }
+    // 安装
+    function install() {
+      var cp = require('child_process');
+      var updateDotExe = path.resolve(path.dirname(process.execPath), '..', 'update.exe');
+      var target = path.basename(process.execPath);
+      var child = cp.spawn(updateDotExe, ["--createShortcut", target], { detached: true });
+      child.on('close', function(code) {
+        app.quit();
+      });
+    }
+    // 卸载
+    function uninstall() {
+      var cp = require('child_process');
+      var updateDotExe = path.resolve(path.dirname(process.execPath), '..', 'update.exe');
+      var target = path.basename(process.execPath);
+      var child = cp.spawn(updateDotExe, ["--removeShortcut", target], { detached: true });
+      child.on('close', function(code) {
+        app.quit();
+      });
+    }
+  };
+  if (handleStartupEvent()) {
+    return ;
+  }
+}
+startupEventHandle();
+
+
+
+
 function createWindow () {
   // Create the browser window.
   mainWindow = new BrowserWindow({
-    width: 600,
-    height: 400,
+    width: 400,
+    height: 500,
     title: APP_NAME,
     skipTaskbar: false,
     icon: __dirname + '/../build/img/icon@8x.png',
@@ -41,7 +91,7 @@ function createWindow () {
   }))
 
   // Open the DevTools.
-  mainWindow.webContents.openDevTools();
+  // mainWindow.webContents.openDevTools();
 
   // Emitted when the window is closed.
 
@@ -58,6 +108,8 @@ function createWindow () {
     // mainWindow.hide();
     // mainWindow = null
   });
+
+  updateInit();
 }
 
 // This method will be called when Electron has finished
@@ -136,6 +188,7 @@ function createTray() {
         {label: '开机启动', type: 'checkbox', click: autoStartHandle, checked: value},
         {label: '上传完成自动关机', type: 'checkbox', click: autoShutdownHandle, checked: setting.autoShutdown},
         {label: '撤销自动关机', click: autoShutdownOffHandle},
+        {label: '检查更新', click: updateHandle},
         {label: '关于', click: aboutHandle},
         {label: "退出", click: closeHandle}
       ]);
@@ -163,6 +216,11 @@ function autoShutdownOffHandle() {
 function autoShutdownHandle(menu) {
   if (!menu.checked) {
     exec('shutdown -a');
+  } else {
+    tray.displayBalloon({
+      title: '上传完成自动关机',
+      content: '上传完成3分钟自动关机（如需要取消关机请使用撤销自动关机╮(￣▽￣)╭）'
+    });
   }
   settingWrite('autoShutdown', menu.checked, (err) => {
     if (err) throw err;
@@ -177,24 +235,25 @@ function aboutHandle() {
 }
 
 function settingWrite(settingName, value, callback) {
-  if (!fs.existsSync(path.resolve(__dirname, '../menu_setting.ini'))) {
-    fs.openSync(path.resolve(__dirname, '../menu_setting.ini'), 'w', '0644');
+  if (!fs.existsSync(path.resolve('menu_setting.ini'))) {
+    fs.openSync(path.resolve('menu_setting.ini'), 'w', '0644');
   }
 
-  fs.readFile(path.resolve(__dirname, '../menu_setting.ini'), (err, data) => {
+  fs.readFile(path.resolve('menu_setting.ini'), (err, data) => {
     if (err) throw err;
     var setting = JSON.parse(data.toString() || "{}");
     setting[settingName] = value;
-    fs.writeFile(path.resolve(__dirname, '../menu_setting.ini'), JSON.stringify(setting), callback);
+    fs.writeFile(path.resolve('menu_setting.ini'), JSON.stringify(setting), callback);
   });
 }
 
 function settingRead(callback) {
-  if (!fs.existsSync(path.resolve(__dirname, '../menu_setting.ini'))) {
-    callback(err, {});
+  if (!fs.existsSync(path.resolve('menu_setting.ini'))) {
+    callback({}, {});
+    return false;
   }
 
-  fs.readFile(path.resolve(__dirname, '../menu_setting.ini'), (err, data) => {
+  fs.readFile(path.resolve('menu_setting.ini'), (err, data) => {
     if (err) throw err;
     var setting = JSON.parse(data.toString() || "{}");
     callback(err, setting);
@@ -228,4 +287,80 @@ function disableAutoStart(callback) {
   key.remove('EUC',  (err)=>{
     callback(err);
   });
+}
+
+
+//autoUpdater
+
+function updateInit() {
+  let appName = APP_NAME;
+  let appIcon = __dirname + '/../build/img/tray-icon.png';
+  let message = {
+    error: '检查更新出错',
+    checking: '正在检查更新……',
+    updateAva: '下载更新成功',
+    updateNotAva: '现在使用的就是最新版本，不用更新',
+    downloaded: '最新版本已下载，将在重启程序后更新'
+  };
+  const os = require('os');
+  autoUpdater.setFeedURL('http://118.190.116.191:1337/download/latest');
+  autoUpdater.on('error', function (error) {
+    return dialog.showMessageBox(mainWindow, {
+      type: 'info',
+      icon: appIcon,
+      buttons: ['OK'],
+      title: appName,
+      message: message.error,
+      detail: '/r' + error
+    });
+  })
+    .on('checking-for-update', function (e) {
+      return dialog.showMessageBox(mainWindow, {
+        type: 'info',
+        icon: appIcon,
+        buttons: ['OK'],
+        title: appName,
+        message: message.checking
+      });
+    })
+    .on('update-available', function (e) {
+      var downloadConfirmation = dialog.showMessageBox(mainWindow, {
+        type: 'info',
+        icon: appIcon,
+        buttons: ['OK'],
+        title: appName,
+        message: message.updateAva
+      });
+      if (downloadConfirmation === 0) {
+        return;
+      }
+    })
+    .on('update-not-available', function (e) {
+      return dialog.showMessageBox(mainWindow, {
+        type: 'info',
+        icon: appIcon,
+        buttons: ['OK'],
+        title: appName,
+        message: message.updateNotAva
+      });
+    })
+    .on('update-downloaded', function (event, releaseNotes, releaseName, releaseDate, updateUrl, quitAndUpdate) {
+      var index = dialog.showMessageBox(mainWindow, {
+        type: 'info',
+        icon: appIcon,
+        buttons: ['现在重启', '稍后重启'],
+        title: appName,
+        message: message.downloaded,
+        detail: releaseName + "/n/n" + releaseNotes
+      });
+      if (index === 1) return;
+      force_quit = true;
+      autoUpdater.quitAndInstall();
+    });
+}
+
+function updateHandle() {
+  // ipc.on('check-for-update', function (event, arg) {
+    autoUpdater.checkForUpdates();
+  // });
 }

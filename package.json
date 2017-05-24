@@ -3,21 +3,48 @@
   "version": "1.0.0",
   "description": "BiliBili-Autoupload",
   "productName": "BiliBili-Autoupload",
-  "scripts": {},
+  "scripts": {
+    "pack:win64": "electron-packager . --out=dist --platform=win32 --arch=x64 --icon=build/app.ico",
+    "pack": "build --dir",
+    "dist": "build"
+  },
   "main": "desktop/main.js",
   "author": "XiaMi",
   "license": "MIT",
+  "build": {
+    "appId": "com.electron.b-autoupload",
+    "files": [
+      "app",
+      "build",
+      "covers",
+      "desktop",
+      "node_modules"
+    ],
+    "mac": {
+      "category": "Utility"
+    },
+    "icon": "app.ico",
+    "asar": false,
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "language": "2052"
+    }
+  },
   "dependencies": {
+    "electron-squirrel-startup": "^1.0.0",
     "jquery": "^2.2.1",
     "lodash": "^4.17.4",
     "lodash.merge": "^4.3.3",
     "moment": "^2.18.1",
     "path": "^0.12.7",
     "phantomjs": "^2.1.7+deprecated",
-    "replace": "^0.3.0",
     "winreg": "^1.2.4"
   },
   "devDependencies": {
-    "electron": "^1.6.2"
+    "electron": "^1.6.2",
+    "electron-builder": "^17.10.0",
+    "electron-packager": "^8.7.0",
+    "electron-winstaller": "^2.5.2"
   }
 }
