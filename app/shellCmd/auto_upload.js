@@ -112,27 +112,27 @@ page.open(targetUrl, function(status) {
 
         }, 1000);
 
-      }, 700);
+      }, 1500);
     }
 
     //只显示上传进度部分
-    // setInterval(function () {
-    //   var uploadObj = page.evaluate(function () {
-    //     var $sortWrps = $('#sortWrp');
-    //     var offset = $sortWrps.offset();
-    //     var height = $sortWrps.height();
-    //     var width = $sortWrps.width();
-    //
-    //     return {
-    //       top: offset.top,
-    //       left: offset.left,
-    //       height: height,
-    //       width: width
-    //     };
-    //   });
-    //
-    //   page.clipRect = uploadObj;
-    // }, 500);
+    setInterval(function () {
+      var uploadObj = page.evaluate(function () {
+        var $sortWrps = $('#sortWrp');
+        var offset = $sortWrps.offset();
+        var height = $sortWrps.height();
+        var width = $sortWrps.width();
+
+        return {
+          top: offset.top,
+          left: offset.left,
+          height: height,
+          width: width
+        };
+      });
+
+      page.clipRect = uploadObj;
+    }, 500);
 
     setInterval(function () {
       var results = page.evaluate(function () {

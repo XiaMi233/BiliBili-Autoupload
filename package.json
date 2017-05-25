@@ -29,16 +29,22 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "language": "2052"
-    }
+    },
+    "publish": [{
+      "provider": "generic",
+      "owner": "xiami",
+      "url": "http://118.190.116.191"
+    }]
   },
   "dependencies": {
-    "electron-squirrel-startup": "^1.0.0",
+    "electron-log": "^2.2.6",
     "jquery": "^2.2.1",
     "lodash": "^4.17.4",
     "lodash.merge": "^4.3.3",
     "moment": "^2.18.1",
     "path": "^0.12.7",
     "phantomjs": "^2.1.7+deprecated",
+    "electron-updater": "^1.16.0",
     "winreg": "^1.2.4"
   },
   "devDependencies": {

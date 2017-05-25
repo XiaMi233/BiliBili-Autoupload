@@ -1,5 +1,7 @@
 const electron = require('electron');
-const {ipcMain, dialog, Menu, Tray, autoUpdater} = require('electron');
+const {ipcMain, dialog, Menu, Tray} = require('electron');
+const {autoUpdater} = require('electron-updater');
+const log = require('electron-log');
 // Module to control application life.
 const app = electron.app;
 // Module to create native browser window.
@@ -21,55 +23,9 @@ let tray;
 
 var APP_NAME = '录播自动上传工具';
 
-function startupEventHandle(){
-  if(require('electron-squirrel-startup')) return;
-  var handleStartupEvent = function () {
-    if (process.platform !== 'win32') {
-      return false;
-    }
-    var squirrelCommand = process.argv[1];
-    switch (squirrelCommand) {
-      case '--squirrel-install':
-      case '--squirrel-updated':
-        install();
-        return true;
-      case '--squirrel-uninstall':
-        uninstall();
-        app.quit();
-        return true;
-      case '--squirrel-obsolete':
-        app.quit();
-        return true;
-    }
-    // 安装
-    function install() {
-      var cp = require('child_process');
-      var updateDotExe = path.resolve(path.dirname(process.execPath), '..', 'update.exe');
-      var target = path.basename(process.execPath);
-      var child = cp.spawn(updateDotExe, ["--createShortcut", target], { detached: true });
-      child.on('close', function(code) {
-        app.quit();
-      });
-    }
-    // 卸载
-    function uninstall() {
-      var cp = require('child_process');
-      var updateDotExe = path.resolve(path.dirname(process.execPath), '..', 'update.exe');
-      var target = path.basename(process.execPath);
-      var child = cp.spawn(updateDotExe, ["--removeShortcut", target], { detached: true });
-      child.on('close', function(code) {
-        app.quit();
-      });
-    }
-  };
-  if (handleStartupEvent()) {
-    return ;
-  }
-}
-startupEventHandle();
-
-
-
+autoUpdater.logger = log;
+autoUpdater.logger.transports.file.level = 'info';
+log.info('App starting...');
 
 function createWindow () {
   // Create the browser window.
@@ -298,12 +254,11 @@ function updateInit() {
   let message = {
     error: '检查更新出错',
     checking: '正在检查更新……',
-    updateAva: '下载更新成功',
+    updateAva: '有可用更新',
     updateNotAva: '现在使用的就是最新版本，不用更新',
     downloaded: '最新版本已下载，将在重启程序后更新'
   };
-  const os = require('os');
-  autoUpdater.setFeedURL('http://118.190.116.191:1337/download/latest');
+  // autoUpdater.setFeedURL('http://118.190.116.191/download/latest');
   autoUpdater.on('error', function (error) {
     return dialog.showMessageBox(mainWindow, {
       type: 'info',

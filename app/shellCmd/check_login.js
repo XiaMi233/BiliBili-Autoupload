@@ -28,10 +28,12 @@ page.open(global.URL_ARTICLE, function(status) {
   if (status !== 'success') {
     phantom.exit();
   } else {
-    page.close();
-    console.log('检查登录状态:已登录');
-    console.log('out_data:LOGGED');
-    phantom.exit();
+    setTimeout(function() {
+      page.close();
+      console.log('检查登录状态:已登录');
+      console.log('out_data:LOGGED');
+      phantom.exit();
+    }, 1000);
   }
 });
 
